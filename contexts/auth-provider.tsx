@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react"
 import type { User } from "@supabase/supabase-js"
-import { getBrowserClient } from "@/lib/supabase"
+import { createClient as getBrowserClient } from "../utils/supabase/client"
 
 type AuthContextType = {
   user: User | null

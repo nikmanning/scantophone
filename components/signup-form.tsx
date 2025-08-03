@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Loader2 } from "lucide-react"
 import { toast } from "@/components/ui/use-toast"
-import { getBrowserClient } from "@/lib/supabase"
+import { createClient as getBrowserClient } from "../utils/supabase/client"
 
 export function SignupForm() {
   const [isLoading, setIsLoading] = useState(false)

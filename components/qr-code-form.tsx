@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { getBrowserClient } from "@/lib/supabase"
+import { createClient as getBrowserClient } from "../utils/supabase/client"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
@@ -24,24 +24,34 @@ const formSchema = z.object({
   name: z.string().min(2, {
     message: "Name must be at least 2 characters.",
   }),
-  custom_url: z.string().url({
-    message: "Please enter a valid URL.",
-  }),
   url_type: z.enum(["current", "custom"]),
+  custom_url: z.string().url({
+    message: "Please enter a valid URL."
+  }).or(z.literal("")), // allow empty string
   display_text: z.string().optional(),
   position: z.string(),
   qr_code_color: z.string(),
   background_color: z.string(),
   button_color: z.string(),
-  margin_x: z.coerce.number().min(0),
-  margin_y: z.coerce.number().min(0),
-  size: z.coerce.number().min(100).max(500),
+  margin_x: z.number().min(0).max(1000),
+  margin_y: z.number().min(0).max(1000),
+  size: z.number().min(100).max(500),
   show_on_mobile: z.boolean(),
   show_on_desktop: z.boolean(),
   button_shape: z.string(),
   start_collapsed: z.boolean(),
   animation: z.string(),
-})
+}).superRefine((data, ctx) => {
+  if (data.url_type === "custom") {
+    if (!data.custom_url || data.custom_url.trim() === "") {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Custom URL is required when URL Type is Custom.",
+        path: ["custom_url"],
+      });
+    }
+  }
+});
 
 interface QRCodeFormProps {
   userId: string
@@ -53,7 +63,9 @@ export function QRCodeForm({ userId }: QRCodeFormProps) {
   const [isLoading, setIsLoading] = useState(false)
 
   // Update the form default values to include urlType
-  const form = useForm<z.infer<typeof formSchema>>({
+  type QRCodeFormValues = z.infer<typeof formSchema>;
+
+const form = useForm<QRCodeFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       name: "",
@@ -77,7 +89,7 @@ export function QRCodeForm({ userId }: QRCodeFormProps) {
 
   const watchedValues = form.watch()
 
-  async function onSubmit(values: z.infer<typeof formSchema>) {
+  async function onSubmit(values: QRCodeFormValues) {
     try {
       setIsLoading(true)
 
@@ -274,7 +286,7 @@ export function QRCodeForm({ userId }: QRCodeFormProps) {
                       <FormItem>
                         <FormLabel>Size</FormLabel>
                         <FormControl>
-                          <Input type="number" {...field} />
+                          <Input type="number" min={100} max={500} placeholder="100-500" {...field} />
                         </FormControl>
                         <FormDescription>Size of the QR code in pixels.</FormDescription>
                         <FormMessage />
@@ -318,7 +330,7 @@ export function QRCodeForm({ userId }: QRCodeFormProps) {
                         <FormItem>
                           <FormLabel>Margin X</FormLabel>
                           <FormControl>
-                            <Input type="number" {...field} />
+                            <Input type="number" min={0} max={1000} {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -332,7 +344,7 @@ export function QRCodeForm({ userId }: QRCodeFormProps) {
                         <FormItem>
                           <FormLabel>Margin Y</FormLabel>
                           <FormControl>
-                            <Input type="number" {...field} />
+                            <Input type="number" min={0} max={1000} {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>

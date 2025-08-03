@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Basic QR Widget Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        h1 {
+            color: #333;
+        }
+        .test-container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>Basic QR Widget Test</h1>
+        <p>This is a minimal test page for the QR code widget without button icon.</p>
+        <p>The widget should appear in the bottom-right corner of the page.</p>
+    </div>
+
+    <!-- The widget script with minimal attributes -->
+    <script src="http://localhost:3000/widget.js"
+        data-qr-id="f861c6bf-1988-4cfa-bed4-28da3c1ffecd"
+        data-position="bottom-right"
+        data-button-shape="rounded"
+        data-display-text="QR Code"
+        defer></script>
+</body>
+</html>

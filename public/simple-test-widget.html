@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple QR Widget Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        h1 {
+            color: #333;
+        }
+        .test-container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>Simple QR Widget Test</h1>
+        <p>This is a minimal test page for the QR code widget.</p>
+        <p>The widget should appear in the bottom-right corner of the page.</p>
+        <p>If you don't see it, check the browser console for errors.</p>
+    </div>
+
+    <!-- Widget script with debugging console logs -->
+    <script>
+        // Add debugging listener
+        window.addEventListener('error', function(event) {
+            console.error('Global error caught:', event.error);
+        });
+        
+        // Log when DOM is ready
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOM fully loaded and parsed');
+        });
+        
+        // Log when window is fully loaded
+        window.addEventListener('load', function() {
+            console.log('Window fully loaded');
+            console.log('Checking for widget script:', !!document.querySelector('script[src*="widget.js"]'));
+        });
+    </script>
+    
+    <!-- The widget script -->
+    <script src="http://localhost:3000/widget.js"
+        data-qr-id="f861c6bf-1988-4cfa-bed4-28da3c1ffecd"
+        data-position="bottom-right"
+        data-button-shape="rounded"
+        data-display-text="Send To Phone"
+        data-button-icon="qr-code"
+        defer></script>
+</body>
+</html>

@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug QR Widget Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        h1 {
+            color: #333;
+        }
+        .test-container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+        #debug-output {
+            margin-top: 20px;
+            padding: 10px;
+            background-color: #f5f5f5;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-family: monospace;
+            white-space: pre-wrap;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>Debug QR Widget Test</h1>
+        <p>This is a debug test page for the QR code widget.</p>
+        <p>The widget should appear in the bottom-right corner of the page.</p>
+        <p>Check the debug output below and browser console for detailed logs.</p>
+        
+        <div id="debug-output"></div>
+    </div>
+
+    <script>
+        // Override console methods to capture logs
+        const debugOutput = document.getElementById('debug-output');
+        const originalConsole = {
+            log: console.log,
+            error: console.error,
+            warn: console.warn
+        };
+        
+        function addToDebugOutput(type, ...args) {
+            const timestamp = new Date().toISOString().split('T')[1].split('.')[0];
+            const message = args.map(arg => {
+                if (typeof arg === 'object') {
+                    try {
+                        return JSON.stringify(arg, null, 2);
+                    } catch (e) {
+                        return String(arg);
+                    }
+                }
+                return String(arg);
+            }).join(' ');
+            
+            const logElement = document.createElement('div');
+            logElement.className = `log-${type}`;
+            logElement.innerHTML = `<span style="color: #888;">[${timestamp}]</span> <span style="color: ${type === 'error' ? 'red' : type === 'warn' ? 'orange' : 'blue'}">${type.toUpperCase()}:</span> ${message}`;
+            
+            debugOutput.appendChild(logElement);
+            debugOutput.scrollTop = debugOutput.scrollHeight;
+            
+            // Call original console method
+            originalConsole[type](...args);
+        }
+        
+        console.log = function(...args) { addToDebugOutput('log', ...args); };
+        console.error = function(...args) { addToDebugOutput('error', ...args); };
+        console.warn = function(...args) { addToDebugOutput('warn', ...args); };
+        
+        // Add debugging listener
+        window.addEventListener('error', function(event) {
+            console.error('Global error caught:', event.error);
+        });
+        
+        // Log when DOM is ready
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOM fully loaded and parsed');
+        });
+        
+        // Log when window is fully loaded
+        window.addEventListener('load', function() {
+            console.log('Window fully loaded');
+            console.log('Checking for widget script:', !!document.querySelector('script[src*="widget-debug.js"]'));
+        });
+    </script>
+    
+    <!-- The widget debug script -->
+    <script src="http://localhost:3000/widget-debug.js"
+        data-qr-id="f861c6bf-1988-4cfa-bed4-28da3c1ffecd"
+        data-position="bottom-right"
+        data-button-shape="rounded"
+        data-display-text="Send To Phone"
+        data-button-icon="qr-code"
+        defer></script>
+</body>
+</html>

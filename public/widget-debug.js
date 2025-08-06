@@ -49,21 +49,21 @@
       .then(config => {
         console.log('API config received:', config);
         
-        // Force show_button to true for debugging
-        config.show_button = true;
+        // Check if widget should be shown based on settings
+        if (config.show_button === false) {
+            console.log('Widget not shown because show_button is false');
+            return; // Do not render widget if show_button is false
+        }
         
-        if ((!config.show_on_desktop && window.innerWidth >= 768) || (!config.show_on_mobile && window.innerWidth < 768)) {
+        // Check device visibility settings
+        if ((!config.show_on_desktop && window.innerWidth >= 768) || 
+            (!config.show_on_mobile && window.innerWidth < 768)) {
             console.log('Widget not shown due to device settings:', {
               show_on_desktop: config.show_on_desktop,
               show_on_mobile: config.show_on_mobile,
               windowWidth: window.innerWidth
             });
             return; // Do not render widget based on device settings
-        }
-        
-        if (!config.show_button) {
-            console.log('Widget not shown because show_button is false');
-            return; // Do not render widget if show_button is false
         }
         
         console.log('Creating widget with config:', config);
@@ -117,33 +117,104 @@
     const qrCodeContainer = document.createElement('div');
     qrCodeContainer.id = 'qr-code-image-container';
 
-    // Dynamically generate QR code if set to current page URL
-    if (config.url_type === 'current') {
+    // Function to generate QR code with current page URL
+    const generateQRCode = () => {
+      const qrData = config.url_type === 'current' ? window.location.href : config.url;
+      console.log('[Widget] Generating QR code with settings:', {
+        url_type: config.url_type,
+        data: qrData,
+        size: config.size || 150,
+        color: config.qr_code_color,
+        backgroundColor: config.background_color || '#ffffff',
+        logo: config.logo_url ? 'Yes' : 'No',
+        eyeStyle: 'extra-rounded'
+      });
+      
+      // Clear previous QR code if any
+      qrCodeContainer.innerHTML = '';
+      
+      // Add loading indicator
+      const loadingDiv = document.createElement('div');
+      loadingDiv.textContent = 'Loading QR code...';
+      loadingDiv.style.textAlign = 'center';
+      loadingDiv.style.padding = '10px';
+      qrCodeContainer.appendChild(loadingDiv);
+      
+      // Load QR code library and generate
       loadScript('https://unpkg.com/qr-code-styling@1.6.0/lib/qr-code-styling.js', () => {
-        console.log('QR code styling library loaded');
+        console.log('[Widget] QR code styling library loaded');
+        
+        // Remove loading indicator
+        qrCodeContainer.innerHTML = '';
+        
+        // Generate QR code with current page URL
         const qrCode = new QRCodeStyling({
           width: config.size || 150,
           height: config.size || 150,
           type: 'svg',
-          data: window.location.href, // Use the current page's URL
+          data: qrData,
           image: config.logo_url,
-          dotsOptions: { color: config.qr_code_color, type: "dots" },
+          dotsOptions: { 
+            color: config.qr_code_color, 
+            type: "dots" 
+          },
           backgroundOptions: {
             color: config.background_color || '#ffffff'
           },
-          imageOptions: { crossOrigin: 'anonymous', margin: 4 },
-          cornersSquareOptions: { color: config.qr_code_color, type: "dot" },
-          cornersDotOptions: { color: config.qr_code_color, type: "dot" }
+          imageOptions: { 
+            crossOrigin: 'anonymous', 
+            margin: 4,
+            imageSize: 0.2
+          },
+          cornersSquareOptions: { 
+            color: config.qr_code_color, 
+            type: "extra-rounded" 
+          },
+          cornersDotOptions: { 
+            color: config.qr_code_color, 
+            type: "dot" 
+          }
         });
+        
         qrCode.append(qrCodeContainer);
+        console.log('[Widget] QR code generated with settings:', {
+          size: config.size || 150,
+          color: config.qr_code_color,
+          backgroundColor: config.background_color || '#ffffff',
+          eyeStyle: 'extra-rounded',
+          hasLogo: !!config.logo_url
+        });
       });
+    };
+    
+    // Check if we should use current page URL
+    if (config.url_type === 'current' || !config.qr_image_url) {
+      console.log('Using current page URL for QR code');
+      generateQRCode();
+      
+      // Update QR code if URL changes (like in SPA navigation)
+      let lastHref = window.location.href;
+      const observer = new MutationObserver(() => {
+        if (window.location.href !== lastHref) {
+          lastHref = window.location.href;
+          console.log('URL changed, updating QR code:', lastHref);
+          generateQRCode();
+        }
+      });
+      
+      // Start observing the document with the configured parameters
+      observer.observe(document, { childList: true, subtree: true });
     } else {
-      // Otherwise, use the pre-generated image
+      // Use pre-generated image for custom URLs
       console.log('Using pre-generated QR image:', config.qr_image_url);
       const qrImage = document.createElement('img');
       qrImage.src = config.qr_image_url;
       qrImage.style.width = `${config.size || 150}px`;
       qrImage.style.height = `${config.size || 150}px`;
+      qrImage.onerror = () => {
+        console.error('Failed to load QR image, falling back to dynamic generation');
+        generateQRCode();
+      };
       qrCodeContainer.appendChild(qrImage);
     }
 
@@ -182,51 +253,76 @@
     const buttonIcon = buttonIconOverride || config.button_icon || 'none';
     console.log('Button icon:', buttonIcon);
     
-    if (buttonIcon === 'none') {
+    if (buttonIcon === 'none' || !buttonIcon) {
       // Use text for the button
-      console.log('Using text for button:', displayTextOverride || config.display_text || 'QR');
-      toggleButton.textContent = displayTextOverride || config.display_text || 'QR';
-    } else {
-      // Use SVG icon for the button
-      const iconUrl = `${baseUrl}/icons/${buttonIcon}.svg`;
-      console.log('Loading icon from:', iconUrl);
+      const buttonText = displayTextOverride || config.display_text || 'QR';
+      console.log('Using text for button:', buttonText);
+      toggleButton.textContent = buttonText;
       
-      // Create SVG element
-      fetch(iconUrl)
-        .then(response => {
-          console.log('Icon fetch response:', response.status);
+      // Apply text styling
+      toggleButton.style.display = 'flex';
+      toggleButton.style.alignItems = 'center';
+      toggleButton.style.justifyContent = 'center';
+      toggleButton.style.padding = '0 10px';
+      toggleButton.style.whiteSpace = 'nowrap';
+      toggleButton.style.overflow = 'hidden';
+      toggleButton.style.textOverflow = 'ellipsis';
+    } else {
+      // Try to use an emoji as fallback if the icon doesn't exist
+      const emojiMap = {
+        'qr-code': '🔲',
+        'link': '🔗',
+        'share': '↗️',
+        'scan': '📱',
+        'default': '❓'
+      };
+      
+      // Set a default emoji
+      let buttonContent = emojiMap[buttonIcon] || emojiMap['default'];
+      
+      // Try to use the specified icon if it exists
+      const iconUrl = `${window.location.origin}/icons/${buttonIcon}.svg`;
+      console.log('Attempting to load icon from:', iconUrl);
+      
+      // Create a temporary div to hold the SVG
+      const iconContainer = document.createElement('div');
+      
+      // Set a timeout for the fetch request
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Icon load timeout')), 2000)
+      );
+      
+      // Try to fetch the icon, but fall back to emoji if it fails
+      Promise.race([
+        fetch(iconUrl).then(response => {
+          if (!response.ok) throw new Error('Icon not found');
           return response.text();
-        })
-        .then(svgText => {
-          console.log('SVG text received, length:', svgText.length);
-          // Create a container for the SVG
-          const iconContainer = document.createElement('div');
-          iconContainer.innerHTML = svgText;
-          
-          // Extract the SVG element
-          const svgElement = iconContainer.querySelector('svg');
+        }),
+        timeoutPromise
+      ])
+      .then(svgText => {
+        console.log('SVG icon loaded successfully');
+        iconContainer.innerHTML = svgText;
+        const svgElement = iconContainer.querySelector('svg');
           if (svgElement) {
             console.log('SVG element found and being added to button');
             // Style the SVG
-            svgElement.setAttribute('width', '24');
-            svgElement.setAttribute('height', '24');
-            svgElement.style.color = 'white';
-            svgElement.style.fill = 'none';
-            svgElement.style.stroke = 'currentColor';
+            svgElement.style.width = '24px';
+            svgElement.style.height = '24px';
+            svgElement.style.fill = config.qr_code_color || '#ffffff';
             
-            // Clear button content and append SVG
+            // Clear any existing content and add the SVG
             toggleButton.innerHTML = '';
             toggleButton.appendChild(svgElement);
-          } else {
-            console.warn('No SVG element found in response, using text fallback');
-            // Fallback to text if SVG loading fails
-            toggleButton.textContent = displayTextOverride || config.display_text || 'QR';
+            return; // Success, exit early
           }
+          throw new Error('No SVG element found in the response');
         })
         .catch(error => {
-          console.error('Error loading SVG icon:', error);
-          // Fallback to text
-          toggleButton.textContent = displayTextOverride || config.display_text || 'QR';
+          console.warn('Could not load icon, using emoji fallback:', error.message);
+          // Use emoji as fallback
+          toggleButton.textContent = buttonContent;
+          toggleButton.style.fontSize = '24px'; // Make emoji larger
         });
     }
 

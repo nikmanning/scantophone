@@ -1,5 +1,20 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+
+// CORS headers to allow requests from the development server
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*', // Allow requests from any origin for development
+  'Access-Control-Allow-Methods': 'GET, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+}
+
+// Handle OPTIONS request for CORS preflight
+export async function OPTIONS() {
+  return new NextResponse(null, {
+    status: 200,
+    headers: corsHeaders
+  })
+}
 
 export async function GET(
   request: Request,
@@ -8,7 +23,10 @@ export async function GET(
   const { id } = params
 
   if (!id) {
-    return NextResponse.json({ error: 'QR code ID is required' }, { status: 400 })
+    return new NextResponse(
+      JSON.stringify({ error: 'QR code ID is required' }), 
+      { status: 400, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
+    )
   }
   
   console.log('Widget API endpoint called with ID:', id)
@@ -20,6 +38,20 @@ export async function GET(
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
     )
     
+    console.log('Supabase Query - Looking for QR code with ID:', id);
+    
+    // First, list all QR codes to see what's available
+    const { data: allCodes, error: listError } = await supabase
+      .from('qr_codes')
+      .select('id')
+      .limit(5);
+      
+    if (listError) {
+      console.error('Error listing QR codes:', listError);
+    } else {
+      console.log('Available QR code IDs (first 5):', allCodes?.map(code => code.id));
+    }
+    
     // Try to fetch the QR code from the database
     const { data, error } = await supabase
       .from('qr_codes')
@@ -27,6 +59,7 @@ export async function GET(
         display_text,
         show_on_desktop,
         show_on_mobile,
+        show_button,
         custom_url,
         url_type,
         qr_code_color,
@@ -49,49 +82,62 @@ export async function GET(
       .eq('id', id)
       .single()
     
-    // If there's an error or no data, use fallback mock data
+    // If there's an error or no data, return a 404
     if (error || !data) {
-      console.error('Error fetching QR code or not found, using fallback data:', error)
-      
-      // Fallback mock data
-      const mockData = {
-        display_text: 'Scan this QR code',
-        show_on_desktop: true,
-        show_on_mobile: true,
-        custom_url: 'https://example.com',
-        url_type: 'custom',
-        qr_code_color: '#000000',
-        background_color: '#ffffff',
-        button_color: '#4f46e5',
-        size: 150,
-        button_shape: 'rounded',
-        button_icon: 'qr-code',
-        logo_url: null,
-        position: 'bottom-right',
-        margin: 20,
-        margin_x: 20,
-        margin_y: 20,
-        start_collapsed: true,
-        auto_show_on_scroll: false,
-        animation: 'fade',
-        qr_image_url: 'https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=https://example.com',
-        show_button: true,
-        active: true
-      }
-      
-      // Remove the active property before sending it to the client
-      const { active, ...config } = mockData
-      return NextResponse.json(config)
+      console.error('QR code not found:', id);
+      return new NextResponse(
+        JSON.stringify({ error: 'QR code not found' }), 
+        { 
+          status: 404,
+          headers: { 
+            'Content-Type': 'application/json',
+            ...corsHeaders
+          }
+        }
+      );
     }
     
     // Check if the QR code is active
     if (!data.active) {
-      return NextResponse.json({ error: 'This QR code is not active' }, { status: 403 })
+      return new NextResponse(
+        JSON.stringify({ error: 'This QR code is not active' }),
+        { 
+          status: 403,
+          headers: {
+            'Content-Type': 'application/json',
+            ...corsHeaders
+          }
+        }
+      );
     }
     
+    // Log the data we got from the database
+    console.log('Database record:', JSON.stringify(data, null, 2));
+    
     // Remove the active property before sending it to the client
-    const { active, ...config } = data
-    return NextResponse.json(config)
+    const { active, ...config } = data;
+    
+    // Log the config we're about to send
+    console.log('Sending config with show_button:', config.show_button);
+    
+    // If URL type is 'current', ensure we don't use the pre-generated QR code
+    if (config.url_type === 'current') {
+      config.qr_image_url = ''; // Clear the pre-generated URL
+    }
+    
+    return new NextResponse(
+      JSON.stringify({
+        ...config,
+        success: true
+      }),
+      { 
+        status: 200,
+        headers: {
+          'Content-Type': 'application/json',
+          ...corsHeaders
+        }
+      }
+    )
     
   } catch (e) {
     console.error('Unexpected error in widget API:', e)

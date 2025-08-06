@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useRef } from "react"
-import QRCode from "qrcode"
+import QRCodeStyling from "qr-code-styling"
 
 interface QRCodeDisplayProps {
   url: string
@@ -13,52 +13,96 @@ interface QRCodeDisplayProps {
 }
 
 function QRCodeDisplay({ url, color, backgroundColor, size, showBorder, logoUrl }: QRCodeDisplayProps) {
-  const canvasRef = useRef<HTMLCanvasElement>(null)
+  const qrCodeRef = useRef<HTMLDivElement>(null)
+  const qrCodeInstance = useRef<QRCodeStyling | null>(null)
 
   useEffect(() => {
-    const generateQRCode = async () => {
-      try {
-        const qrCodeDataURL = await QRCode.toDataURL(url, {
-          width: size,
-          color: {
-            dark: color,
-            light: backgroundColor,
-          },
-        })
-
-        const canvas = canvasRef.current
-        if (!canvas) return
-        const ctx = canvas.getContext("2d")
-        if (!ctx) return
-
-        const img = new Image()
-        img.onload = () => {
-          // Calculate the position to center the logo
-          const logoSize = size * 0.2 // Adjust the logo size as needed
-          const x = (size - logoSize) / 2
-          const y = (size - logoSize) / 2
-
-          // Draw the QR code
-          ctx.clearRect(0, 0, size, size) // Clear the canvas
-          ctx.drawImage(img, 0, 0, size, size)
-
-          // Load and draw the logo
-          const logo = new Image()
-          logo.onload = () => {
-            ctx.drawImage(logo, x, y, logoSize, logoSize)
-          }
-          logo.src = logoUrl
-        }
-        img.src = qrCodeDataURL
-      } catch (error) {
-        console.error("Error generating QR code:", error)
-      }
+    if (!qrCodeRef.current) return;
+    
+    // Clear previous QR code if it exists
+    if (qrCodeInstance.current) {
+      qrCodeRef.current.innerHTML = "";
     }
 
-    generateQRCode()
+    console.log('[QRCodePreview] Creating QR code with settings:', {
+      url: url === "https://example.com" ? 'Example Placeholder' : url,
+      color,
+      backgroundColor,
+      size,
+      hasLogo: !!logoUrl,
+      eyeStyle: 'extra-rounded',
+      imageSize: 0.2,
+      isExamplePlaceholder: url === "https://example.com"
+    });
+
+    // Create new QR code with the same styling as the widget
+    const qrCode = new QRCodeStyling({
+      width: size,
+      height: size,
+      type: "svg",
+      data: url,
+      image: logoUrl,
+      dotsOptions: { 
+        color: color,
+        type: "dots" // Match the widget implementation exactly
+      },
+      backgroundOptions: { 
+        color: backgroundColor 
+      },
+      imageOptions: { 
+        crossOrigin: "anonymous",
+        margin: 4,
+        imageSize: 0.2,
+        hideBackgroundDots: true
+      },
+      cornersSquareOptions: { 
+        color: color,
+        type: "extra-rounded"
+      },
+      qrOptions: {
+        typeNumber: 0,
+        mode: "Byte",
+        errorCorrectionLevel: "Q"
+      },
+      cornersDotOptions: { 
+        color: color,
+        type: "dot"
+      },
+      dotsOptionsHelper: {
+        colorType: { single: true },
+        gradient: null
+      },
+      cornersSquareOptionsHelper: {
+        colorType: { single: true },
+        gradient: null
+      },
+      cornersDotOptionsHelper: {
+        colorType: { single: true },
+        gradient: null
+      }
+    } as any); // Using 'as any' to bypass TypeScript errors for advanced options
+
+    qrCodeInstance.current = qrCode;
+    qrCode.append(qrCodeRef.current);
+    
+    console.log('[QRCodePreview] QR code rendered with settings:', {
+      size,
+      color,
+      backgroundColor,
+      eyeStyle: 'extra-rounded',
+      hasLogo: !!logoUrl,
+      isExamplePlaceholder: url === "https://example.com"
+    });
+
+    return () => {
+      // Clean up on unmount
+      if (qrCodeInstance.current) {
+        qrCodeInstance.current = null
+      }
+    }
   }, [url, color, backgroundColor, size, logoUrl])
 
-  return <canvas ref={canvasRef} width={size} height={size} />
+  return <div ref={qrCodeRef} style={{ width: size, height: size }} />
 }
 
 interface QRCodePreviewProps {
@@ -68,6 +112,17 @@ interface QRCodePreviewProps {
 }
 
 export function QRCodePreview({ qrCode, size = 200, logoUrl = "/images/g4.png" }: QRCodePreviewProps) {
+  // Ensure we have a valid logo URL with fallback
+  const finalLogoUrl = qrCode.logo_url || logoUrl || '/images/g4.png';
+  
+  console.log('[QRCodePreview] Rendering preview with settings:', {
+    url: qrCode.url === "Current Page" ? 'Current Page' : qrCode.url,
+    color: qrCode.qr_code_color || "#000000",
+    backgroundColor: qrCode.background_color || "#ffffff",
+    logoUrl: finalLogoUrl,
+    size
+  });
+
   return (
     <QRCodeDisplay
       url={qrCode.url === "Current Page" ? "https://example.com" : qrCode.url}
@@ -75,7 +130,7 @@ export function QRCodePreview({ qrCode, size = 200, logoUrl = "/images/g4.png" }
       backgroundColor={qrCode.background_color || "#ffffff"}
       size={size}
       showBorder={false}
-      logoUrl={qrCode.logo_url || logoUrl}
+      logoUrl={finalLogoUrl}
     />
   )
 }

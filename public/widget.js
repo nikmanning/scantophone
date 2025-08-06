@@ -39,9 +39,7 @@
         if ((!config.show_on_desktop && window.innerWidth >= 768) || (!config.show_on_mobile && window.innerWidth < 768)) {
             return; // Do not render widget based on device settings
         }
-        if (!config.show_button) {
-            return; // Do not render widget if show_button is false
-        }
+        // Always create the widget, but conditionally show the button
         createWidget(config, positionOverride, buttonShapeOverride, displayTextOverride, buttonIconOverride, baseUrl);
       })
       .catch(error => {
@@ -131,7 +129,7 @@
     content.appendChild(qrCodeContainer);
     content.appendChild(displayTextElement);
 
-    // Toggle Button
+    // Toggle Button - only create and add if show_button is true
     const toggleButton = document.createElement('button');
     toggleButton.id = 'qr-widget-toggle';
     toggleButton.style.width = '60px';
@@ -143,7 +141,7 @@
     toggleButton.style.borderRadius = buttonShape === 'rounded' ? '50%' : '12px';
     toggleButton.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
     toggleButton.style.cursor = 'pointer';
-    toggleButton.style.display = 'flex';
+    toggleButton.style.display = config.show_button ? 'flex' : 'none'; // Hide button if show_button is false
     toggleButton.style.alignItems = 'center';
     toggleButton.style.justifyContent = 'center';
     toggleButton.style.fontSize = '18px';

@@ -164,38 +164,118 @@ export default function QRCodeCreationFlow() {
     setCurrentPageUrl(window.location.href)
   }, [])
 
-  // Generate a direct URL from QR Monkey API
-  const generateQrMonkeyUrl = (
-    url: string,
-    qrCodeColor: string,
-    backgroundColor: string,
-    size: number,
-    logoUrl?: string | null
-  ) => {
+  // Generate a data URL for a QR code using the qr-code-styling library
+  const generateQRCodeDataURL = async (url: string, qrCodeColor: string, backgroundColor: string, logoUrl?: string, size = 300): Promise<string> => {
     try {
-      const formattedUrl = url.startsWith("http") ? url : `https://${url}`
-      const encodedUrl = encodeURIComponent(formattedUrl)
-
-      // Format colors
-      const bodyColor = qrCodeColor.replace("#", "").toLowerCase()
-      const bgColor = backgroundColor.replace("#", "").toLowerCase()
-
-      // Handle logo
-      let logoParam = ""
-      if (logoUrl) {
-        // If the logo is the default local path, use the absolute public URL for the API call.
-        const absoluteLogoUrl = logoUrl === DEFAULT_LOGO ? QR_MONKEY_LOGO_URL : logoUrl
-        logoParam = `&logo=${encodeURIComponent(absoluteLogoUrl)}&logoMode=clean`
-      }
-
-      // Create a direct URL to QR Monkey API
-      return `https://api.qrcode-monkey.com/qr/custom?data=${encodedUrl}&size=${size}&body=dots&eye=frame2&eyeBall=ball2&bodyColor=${bodyColor}&bgColor=${bgColor}&eye1Color=${bodyColor}&eye2Color=${bodyColor}&eye3Color=${bodyColor}&eyeBall1Color=${bodyColor}&eyeBall2Color=${bodyColor}&eyeBall3Color=${bodyColor}${logoParam}`
+      console.log('[CreateQR] Starting QR code generation with:', {
+        url,
+        qrCodeColor,
+        backgroundColor,
+        logoUrl: logoUrl ? 'provided' : 'not provided',
+        size
+      });
+      
+      // Ensure URL is properly formatted
+      const formattedUrl = url.startsWith('http') ? url : `https://${url}`;
+      console.log('[CreateQR] Formatted URL:', formattedUrl);
+      
+      // Create a temporary div to render the QR code
+      const tempDiv = document.createElement('div');
+      tempDiv.style.position = 'absolute';
+      tempDiv.style.left = '-9999px';
+      document.body.appendChild(tempDiv);
+      
+      // Use the same styling as in the display component
+      const QRCodeStyling = (await import('qr-code-styling')).default;
+      console.log('[CreateQR] QR code library loaded');
+      
+      // Make sure we have a valid logo URL or set to undefined
+      const finalLogoUrl = logoUrl && logoUrl.trim() !== '' ? logoUrl : '/images/g4.png';
+      console.log('[CreateQR] Using logo:', finalLogoUrl);
+      
+      const qrCode = new QRCodeStyling({
+        width: size,
+        height: size,
+        type: 'svg',
+        data: formattedUrl,
+        image: finalLogoUrl,
+        dotsOptions: {
+          color: qrCodeColor,
+          type: 'dots' // Match the widget implementation exactly
+        },
+        backgroundOptions: {
+          color: backgroundColor
+        },
+        imageOptions: {
+          crossOrigin: 'anonymous',
+          margin: 4,
+          imageSize: 0.2,
+          hideBackgroundDots: true
+        },
+        cornersSquareOptions: {
+          color: qrCodeColor,
+          type: 'extra-rounded'
+        },
+        qrOptions: {
+          typeNumber: 0,
+          mode: 'Byte',
+          errorCorrectionLevel: 'Q'
+        },
+        cornersDotOptions: {
+          color: qrCodeColor,
+          type: 'dot'
+        }
+      });
+      
+      // Generate the QR code as a data URL directly
+      return new Promise((resolve, reject) => {
+        console.log('[CreateQR] Generating QR code data URL...');
+        
+        try {
+          qrCode.append(tempDiv);
+          console.log('[CreateQR] QR code appended to DOM');
+          
+          // Wait a moment to ensure rendering is complete
+          setTimeout(() => {
+            try {
+              // Get the SVG element
+              const svg = tempDiv.querySelector('svg');
+              if (!svg) {
+                console.error('[CreateQR] Failed to find SVG element in container');
+                throw new Error('Failed to generate QR code - no SVG found');
+              }
+              
+              // Convert SVG to data URL
+              const svgData = new XMLSerializer().serializeToString(svg);
+              console.log('[CreateQR] SVG serialized, length:', svgData.length);
+              
+              // Fix XML declaration if present (can cause issues with some browsers)
+              const cleanSvgData = svgData.replace(/^<\?xml[^>]+>/, '');
+              
+              // Use a more reliable way to encode SVG
+              const dataUrl = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(cleanSvgData);
+              console.log('[CreateQR] Data URL generated successfully, starts with:', dataUrl.substring(0, 50) + '...');
+              
+              // Clean up
+              document.body.removeChild(tempDiv);
+              
+              resolve(dataUrl);
+            } catch (innerError) {
+              console.error('[CreateQR] Error in SVG processing:', innerError);
+              document.body.removeChild(tempDiv);
+              reject(innerError);
+            }
+          }, 100);
+        } catch (appendError) {
+          console.error('[CreateQR] Error appending QR code:', appendError);
+          document.body.removeChild(tempDiv);
+          reject(appendError);
+        }
+      });
     } catch (error) {
-      console.error("Error generating QR Monkey URL:", error)
-      // Fallback to a basic URL if there's an error
-      return `https://api.qrcode-monkey.com/qr/custom?data=${encodeURIComponent(
-        "https://example.com"
-      )}&size=300`
+      console.error('[CreateQR] Error generating QR code:', error);
+      // Return a transparent pixel as fallback
+      return 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=';
     }
   }
 
@@ -214,12 +294,12 @@ export default function QRCodeCreationFlow() {
     try {
       setIsSaving(true)
       const url = qrCodeState.urlType === "custom" ? qrCodeState.customUrl : "example.com"
-      const qrImageUrl = generateQrMonkeyUrl(
+      const qrImageUrl = await generateQRCodeDataURL(
         url,
         qrCodeState.qrCodeColor,
         qrCodeState.backgroundColor,
-        qrCodeState.qrSize,
-        qrCodeState.logoUrl
+        qrCodeState.logoUrl,
+        qrCodeState.qrSize
       )
 
       const qrCodeData = {

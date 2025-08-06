@@ -85,7 +85,7 @@ export default function MyQRCodes() {
         const formattedData = data.map((qrCode) => ({
           id: qrCode.id,
           name: qrCode.name || "Unnamed QR Code",
-          type: qrCode.type || "Dynamic",
+          type: qrCode.url_type || "Dynamic",
           url: qrCode.custom_url || "https://example.com",
           createdAt: new Date(qrCode.created_at).toLocaleDateString("en-US", {
             year: "numeric",
@@ -183,61 +183,156 @@ export default function MyQRCodes() {
     try {
       setRefreshingId(qrCode.id)
 
+      // For 'current' URL type, we don't need to generate a static image
+      // as it will be generated client-side with the current URL
+      if (qrCode.type === 'current') {
+        toast({
+          title: "QR code updated",
+          description: "This QR code will always show the current page URL",
+        });
+        setRefreshingId(null);
+        return;
+      }
+
       toast({
         title: "Refreshing QR code",
         description: "Regenerating your QR code...",
-      })
+      });
 
       // Format the URL for the QR code
-      const url = qrCode.url === "Current Page" ? "https://example.com" : qrCode.url
-      const formattedUrl = url.startsWith("http") ? url : `https://${url}`
+      const url = qrCode.url.startsWith("http") ? qrCode.url : `https://${qrCode.url}`;
 
-      // Generate QR code data URL using our updated function
-      const dataUrl = await generateQRCodeDataURL({
-        width: 300,
-        height: 300,
-        type: "canvas",
-        data: formattedUrl,
-        image: qrCode.logoUrl || DEFAULT_LOGO,
-        dotsOptions: {
-          type: "square",
-          color: qrCode.color || "#000000",
-        },
-        backgroundOptions: {
-          color: qrCode.backgroundColor || "#FFFFFF",
-        },
-        imageOptions: {
-          crossOrigin: "anonymous",
-          margin: 10,
-        },
-      })
+      // Make sure we have a valid logo URL or set to default
+      const finalLogoUrl = qrCode.logoUrl && qrCode.logoUrl.trim() !== '' ? qrCode.logoUrl : DEFAULT_LOGO;
+      console.log('[RefreshQR] Using logo:', finalLogoUrl);
+      
+      // Create a temporary div to render the QR code
+      const tempDiv = document.createElement('div');
+      tempDiv.style.position = 'absolute';
+      tempDiv.style.left = '-9999px';
+      document.body.appendChild(tempDiv);
+      
+      try {
+        // Use qr-code-styling library directly for best control
+        const QRCodeStyling = (await import('qr-code-styling')).default;
+        console.log('[RefreshQR] Using QR code styling library with url:', url);
+        
+        // Rename the QR code instance to avoid variable name conflict
+        const qrCodeInstance = new QRCodeStyling({
+          width: 300,
+          height: 300,
+          type: 'canvas',
+          data: url,
+          image: finalLogoUrl,
+          dotsOptions: {
+            type: 'dots',
+            color: qrCode.color || '#000000'
+          },
+          backgroundOptions: {
+            color: qrCode.backgroundColor || '#FFFFFF'
+          },
+          imageOptions: {
+            crossOrigin: 'anonymous',
+            margin: 4,
+            imageSize: 0.2,
+            hideBackgroundDots: true
+          },
+          cornersSquareOptions: {
+            type: 'extra-rounded',
+            color: qrCode.color || '#000000'
+          },
+          cornersDotOptions: {
+            type: 'dot',
+            color: qrCode.color || '#000000'
+          },
+          qrOptions: {
+            errorCorrectionLevel: 'Q'
+          }
+        });
+        
+        // Append to the DOM to generate the QR code
+        qrCodeInstance.append(tempDiv);
+        
+        // Get data URL from canvas
+        const canvas = tempDiv.querySelector('canvas');
+        if (!canvas) {
+          throw new Error('Failed to generate QR code - no canvas element found');
+        }
+        
+        // Convert to data URL - use medium quality to avoid excessively large data URLs
+        const dataUrl = canvas.toDataURL('image/png', 0.8);
+        console.log('[RefreshQR] QR code data URL generated successfully, length:', dataUrl.length);
+        
+        if (!dataUrl || dataUrl.length < 100) {
+          throw new Error('Generated QR code data URL seems invalid or too short');
+        }
+        
+        // Store the QR code settings instead of the full image URL
+        // This ensures we can recreate the QR code from the settings on page refresh
+        const qrCodeSettings = {
+          url: url,
+          color: qrCode.color || '#000000',
+          backgroundColor: qrCode.backgroundColor || '#FFFFFF',
+          logoUrl: finalLogoUrl,
+          refreshed: new Date().toISOString()
+        };
+        
+        console.log('[RefreshQR] Storing QR code settings:', qrCodeSettings);
+        
+        // Update the QR code in Supabase
+        const { error } = await supabase
+          .from("qr_codes")
+          .update({
+            // Store the actual settings instead of just the data URL
+            qr_settings: qrCodeSettings,
+            // Also store the data URL for immediate display
+            qr_image_url: dataUrl
+          })
+          .eq("id", qrCode.id);
 
-      // Update the QR code in Supabase with the new QR image URL
-      const { error } = await supabase.from("qr_codes").update({ qr_image_url: dataUrl }).eq("id", qrCode.id)
+        if (error) {
+          throw error;
+        }
 
-      if (error) {
-        throw error
+        // Update the qrCodes state
+        setQrCodes(qrCodes.map((qr) => {
+          if (qr.id === qrCode.id) {
+            return { 
+              ...qr, 
+              qrImageUrl: dataUrl,
+              // Also update the settings in the local state
+              url: url,
+              color: qrCode.color || '#000000',
+              backgroundColor: qrCode.backgroundColor || '#FFFFFF',
+              logoUrl: finalLogoUrl
+            };
+          }
+          return qr;
+        }));
+
+        toast({
+          title: "QR Code refreshed",
+          description: "Your QR code has been refreshed and saved successfully.",
+        });
+      } finally {
+        // Always clean up the temporary div
+        if (document.body.contains(tempDiv)) {
+          document.body.removeChild(tempDiv);
+        }
       }
-
-      // Update the qrCodes state to include the new QR image URL
-      setQrCodes(qrCodes.map((qr) => (qr.id === qrCode.id ? { ...qr, qrImageUrl: dataUrl } : qr)))
-
-      toast({
-        title: "QR Code refreshed",
-        description: "Your QR code has been refreshed and saved successfully.",
-      })
     } catch (error) {
-      console.error("Error refreshing QR code:", error)
-      const errorMessage = error instanceof Error ? error.message : "Unknown error"
+      console.error("Error refreshing QR code:", error);
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
       toast({
         title: "Refresh failed",
         description: `Failed to refresh QR code: ${errorMessage}`,
         variant: "destructive",
-      })
+      });
     } finally {
-      setRefreshingId(null)
+      setRefreshingId(null);
     }
   }
+
 
   // Filter QR codes based on search query and active tab
   const filteredQRCodes = qrCodes

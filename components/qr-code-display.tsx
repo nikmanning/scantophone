@@ -97,25 +97,109 @@ export default function QRCodeDisplay({
   // Effect to render QR code
   useEffect(() => {
     // Wait until the logo URL is available to prevent a race condition
-    if (!qrCodeRef.current || !logoUrl) return
+    if (!qrCodeRef.current) return;
 
     // Clear previous QR code
-    qrCodeRef.current.innerHTML = ""
+    qrCodeRef.current.innerHTML = "";
 
+    // For 'current' URL type, always use the current page URL
+    // For other types, use the provided URL or the pre-generated image if available
+    const qrDataUrl = type === 'current' 
+      ? (typeof window !== 'undefined' ? window.location.href : '') 
+      : url;
+    
+    // Ensure we have a valid logo URL
+    const finalLogoUrl = logoUrl || '/images/g4.png';
+    
+    console.log('[QRCodeDisplay] Rendering QR code with settings:', {
+      id,
+      type,
+      url: type === 'current' ? 'Current Page URL' : url,
+      color,
+      backgroundColor,
+      logoUrl: finalLogoUrl,
+      hasLogo: !!finalLogoUrl,
+      eyeStyle: 'extra-rounded',
+      viewMode,
+      usingPreGeneratedImage: !!(qrImageUrl && type !== 'current')
+    });
+    
+    // Try to use the pre-generated image first if available and not a 'current' URL type
+    if (qrImageUrl && type !== 'current' && qrCodeRef.current) {
+      console.log('[QRCodeDisplay] Using pre-generated image for QR code');
+      // Simpler approach - use the image directly and fall back if needed
+      if (qrImageUrl.startsWith('data:image/') && qrImageUrl.length > 100) {
+        const img = document.createElement('img');
+        img.src = qrImageUrl;
+        img.alt = 'QR Code';
+        img.style.width = '100%';
+        img.style.height = 'auto';
+        
+        // Add error handling to detect broken/invalid images
+        img.onerror = () => {
+          console.warn('[QRCodeDisplay] Pre-generated image failed to load, will generate QR code dynamically');
+          if (qrCodeRef.current) {
+            qrCodeRef.current.innerHTML = '';
+          }
+          // The useEffect will continue with dynamic generation after this block
+        };
+        
+        // Add to the DOM
+        qrCodeRef.current.appendChild(img);
+        
+        // Return early - we'll only render dynamically if the image fails to load via onerror
+        return;
+      } else {
+        console.warn('[QRCodeDisplay] Invalid or incomplete QR image URL, falling back to dynamic generation');
+      }
+    }
 
-
+    // Create QR code with circular eyes to match the widget
     const qrCode = new QRCodeStyling({
       width: viewMode === "grid" ? 192 : 96,
       height: viewMode === "grid" ? 192 : 96,
       type: "svg",
-      data: url === "Current Page" ? "https://example.com" : url,
-      image: logoUrl, // Use the logo from props
-      dotsOptions: { color, type: "dots" },
-      backgroundOptions: { color: backgroundColor },
-      imageOptions: { crossOrigin: "anonymous", margin: 4, imageSize: 0.6 },
-      cornersSquareOptions: { color, type: "dot" },
-      cornersDotOptions: { color, type: "dot" },
-    })
+      data: qrDataUrl,
+      image: finalLogoUrl, // Use the final logo URL with fallback
+      dotsOptions: { 
+        color: color,
+        type: "dots" // Match the widget implementation exactly
+      },
+      backgroundOptions: { 
+        color: backgroundColor 
+      },
+      imageOptions: { 
+        crossOrigin: "anonymous",
+        margin: 4,
+        imageSize: 0.2, // Reduced size to ensure logo fits well
+        hideBackgroundDots: true
+      },
+      cornersSquareOptions: { 
+        color: color,
+        type: "extra-rounded"
+      },
+      qrOptions: {
+        typeNumber: 0,
+        mode: "Byte",
+        errorCorrectionLevel: "Q"
+      },
+      cornersDotOptions: { 
+        color: color,
+        type: "dot"
+      },
+      dotsOptionsHelper: {
+        colorType: { single: true },
+        gradient: null
+      },
+      cornersSquareOptionsHelper: {
+        colorType: { single: true },
+        gradient: null
+      },
+      cornersDotOptionsHelper: {
+        colorType: { single: true },
+        gradient: null
+      }
+    } as any) // Using 'as any' to bypass TypeScript errors for advanced options
 
     qrCodeInstanceRef.current = qrCode
     qrCode.append(qrCodeRef.current)
@@ -159,16 +243,7 @@ export default function QRCodeDisplay({
         <div className="flex justify-between items-start mb-4">
           <h2 className="text-xl font-bold">{title}</h2>
           <div className="flex space-x-2">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8 rounded-full hover:bg-[#e4ff54] hover:text-black"
-              onClick={handleRefresh}
-              disabled={isRefreshing}
-            >
-              {isRefreshing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-              <span className="sr-only">Refresh</span>
-            </Button>
+            {/* Refresh button removed per user request - users should use Create/Save flow instead */}
             <Button
               variant="ghost"
               size="icon"

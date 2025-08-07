@@ -1,4 +1,4 @@
-"use client"
+
 
 "use client"
 
@@ -97,13 +97,14 @@ export default function QRCodeDisplay({
   // Effect to render QR code
   useEffect(() => {
     // Wait until the logo URL is available to prevent a race condition
-    if (!qrCodeRef.current) return;
+    if (!qrCodeRef.current || !url) return;
 
     // Clear previous QR code
     qrCodeRef.current.innerHTML = "";
 
-    // For 'current' URL type, always use the current page URL
-    // For other types, use the provided URL or the pre-generated image if available
+    // For 'current' URL type, use the current page URL
+    // For custom type, use the provided custom URL
+    // Always generate dynamically - never use pre-generated images
     const qrDataUrl = type === 'current' 
       ? (typeof window !== 'undefined' ? window.location.href : '') 
       : url;
@@ -124,35 +125,8 @@ export default function QRCodeDisplay({
       usingPreGeneratedImage: !!(qrImageUrl && type !== 'current')
     });
     
-    // Try to use the pre-generated image first if available and not a 'current' URL type
-    if (qrImageUrl && type !== 'current' && qrCodeRef.current) {
-      console.log('[QRCodeDisplay] Using pre-generated image for QR code');
-      // Simpler approach - use the image directly and fall back if needed
-      if (qrImageUrl.startsWith('data:image/') && qrImageUrl.length > 100) {
-        const img = document.createElement('img');
-        img.src = qrImageUrl;
-        img.alt = 'QR Code';
-        img.style.width = '100%';
-        img.style.height = 'auto';
-        
-        // Add error handling to detect broken/invalid images
-        img.onerror = () => {
-          console.warn('[QRCodeDisplay] Pre-generated image failed to load, will generate QR code dynamically');
-          if (qrCodeRef.current) {
-            qrCodeRef.current.innerHTML = '';
-          }
-          // The useEffect will continue with dynamic generation after this block
-        };
-        
-        // Add to the DOM
-        qrCodeRef.current.appendChild(img);
-        
-        // Return early - we'll only render dynamically if the image fails to load via onerror
-        return;
-      } else {
-        console.warn('[QRCodeDisplay] Invalid or incomplete QR image URL, falling back to dynamic generation');
-      }
-    }
+    // Always generate QR codes dynamically - never use pre-generated images
+    console.log('[QRCodeDisplay] Generating QR code dynamically for:', type === 'current' ? 'Current Page URL' : url);
 
     // Create QR code with circular eyes to match the widget
     const qrCode = new QRCodeStyling({
@@ -203,7 +177,7 @@ export default function QRCodeDisplay({
 
     qrCodeInstanceRef.current = qrCode
     qrCode.append(qrCodeRef.current)
-  }, [isRefreshing, id, url, color, backgroundColor, logoUrl, title, viewMode])
+  }, [isRefreshing, id, url, type, color, backgroundColor, logoUrl, title, viewMode])
 
   // Handle download
   const handleDownload = async () => {

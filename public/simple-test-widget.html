@@ -51,12 +51,31 @@
     </script>
     
     <!-- The widget script -->
-    <script src="http://localhost:3000/widget.js"
+    <script>
+        // Debug script loading
+        console.log('Before widget script, current time:', new Date().toISOString());
+    </script>
+    
+    <script src="http://localhost:3001/widget.js"
     data-qr-id="bd790426-38b5-4b83-b5cc-732ec3cec848"
     data-position="bottom-right"
     data-button-shape="rounded"
     data-display-text="Scan with 📲"
-    data-button-icon="none"
+    data-show-button="false"
     defer></script>
+    
+    <script>
+        // Check all script tags after loading
+        window.addEventListener('load', function() {
+            console.log('All scripts on page:');
+            document.querySelectorAll('script').forEach((script, index) => {
+                console.log(`Script ${index}:`, {
+                    src: script.src,
+                    'data-qr-id': script.getAttribute('data-qr-id'),
+                    'data-processed': script.getAttribute('data-processed')
+                });
+            });
+        });
+    </script>
 </body>
 </html>

@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QR Widget Embed Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-section {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1, h2 {
+            color: #333;
+        }
+        .embed-code {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 12px;
+            overflow-x: auto;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>QR Widget Embed Code Test</h1>
+    
+    <div class="test-section">
+        <h2>Test 1: Basic Embed</h2>
+        <p>This page tests if the embed code copied from the test-widget.html works correctly.</p>
+        <div class="embed-code">
+            &lt;script src="/widget.js" data-qr-id="test-current-url"&gt;&lt;/script&gt;
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h2>Test 2: With Position Override</h2>
+        <p>Testing position override in embed code:</p>
+        <div class="embed-code">
+            &lt;script src="/widget.js" data-qr-id="test-current-url" data-position="bottom-right"&gt;&lt;/script&gt;
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h2>Test 3: Full Configuration</h2>
+        <p>Testing full configuration override:</p>
+        <div class="embed-code">
+            &lt;script src="/widget.js" data-qr-id="test-current-url" data-position="bottom-left" data-button-shape="rounded" data-display-text="Scan to visit" data-show-button="no"&gt;&lt;/script&gt;
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h2>Live Test with Real QR ID</h2>
+        <p>Below is a live embed test using the real QR ID from test-widget.html:</p>
+        <!--
+            This script tag is a live test of the QR widget using the real QR ID from
+            test-widget.html. It is configured with the following attributes:
+
+            - data-qr-id: The QR ID of the widget
+            - data-position: The position of the widget (bottom-left)
+            - data-button-shape: The shape of the widget button (rounded)
+            - data-display-text: The text displayed on the widget button (Real QR Test)
+            - data-show-button: Whether to show the widget button (false)
+        -->
+        <script src="http://localhost:3005/widget.js"
+        data-qr-id="bd790426-38b5-4b83-b5cc-732ec3cec848"
+        data-position="bottom-right"
+        data-button-shape="rounded"
+        data-display-text="444"
+        data-button-icon="none"
+        defer></script>
+    </div>
+
+    <div style="height: 100vh; background: linear-gradient(45deg, #f0f0f0, #e0e0e0); margin: 20px 0; border-radius: 8px; display: flex; align-items: center; justify-content: center;">
+        <p style="color: #666; font-size: 18px;">Scroll down to test widget visibility</p>
+    </div>
+
+</body>
+</html>

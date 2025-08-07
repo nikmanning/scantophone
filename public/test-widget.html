@@ -3,63 +3,331 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>QR Widget Test</title>
+    <title>QR Widget Test Interface</title>
     <style>
         body {
-            font-family: sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
             line-height: 1.6;
             padding: 2em;
-            height: 200vh; /* Make page scrollable to test scroll trigger */
-            background-color: #f0f2f5;
-        }
-        h1 {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: #333;
+            margin: 0;
+            min-height: 100vh;
         }
-        p {
-            max-width: 600px;
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
         }
-        .placeholder {
+        .card {
             background: #fff;
             padding: 2em;
-            border-radius: 8px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+            border: 1px solid rgba(255,255,255,0.2);
         }
-        .code {
-            background-color: #e0e0e0;
-            padding: 2px 6px;
-            border-radius: 4px;
-            font-family: monospace;
+        .card h2 {
+            margin-top: 0;
+            color: #2d3748;
+            border-bottom: 2px solid #e2e8f0;
+            padding-bottom: 0.5em;
+        }
+        .controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 16px;
+        }
+        .control-group {
+            margin-bottom: 0;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #4a5568;
+        }
+        select, input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.2s;
+        }
+        select:focus, input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        button:hover {
+            transform: translateY(-1px);
+        }
+        button:active {
+            transform: translateY(0);
+        }
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 40px;
+            color: #718096;
+        }
+        .loading::after {
+            content: '';
+            width: 20px;
+            height: 20px;
+            border: 2px solid #e2e8f0;
+            border-top: 2px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-left: 10px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .status-message {
+            padding: 12px;
+            border-radius: 8px;
+            margin: 10px 0;
+            font-weight: 500;
+        }
+        .status-message.success {
+            background: #f0fff4;
+            color: #22543d;
+            border: 1px solid #9ae6b4;
+        }
+        .status-message.error {
+            background: #fed7d7;
+            color: #742a2a;
+            border: 1px solid #feb2b2;
+        }
+        .status-message.info {
+            background: #e6fffa;
+            color: #234e52;
+            border: 1px solid #81e6d9;
+        }
+        h1 {
+            color: white;
+            text-align: center;
+            margin-bottom: 2em;
+            font-size: 2.5em;
+            font-weight: 700;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        #widget-container {
+            margin: 20px 0;
+            padding: 20px;
+            border: 2px dashed #e2e8f0;
+            border-radius: 12px;
+            text-align: center;
+            background: #f7fafc;
+            min-height: 100px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .embed-code {
+            background: #1a202c;
+            color: #e2e8f0;
+            padding: 16px;
+            border-radius: 8px;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 13px;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            word-break: break-all;
         }
     </style>
 </head>
 <body>
-    <h1>QR Code Widget Test Page</h1>
-    <p>This page is for testing the embeddable QR code widget.</p>
-    <p>Scroll down to see the "auto show on scroll" feature in action (if enabled for the QR code).</p>
-
-    <div class="placeholder">
-        <h2>Instructions</h2>
-        <p>To test the widget, you need to replace <code class="code">YOUR_QR_CODE_ID</code> in the script tag at the bottom of this file with a real QR code ID from your application.</p>
-        <ol>
-            <li>Go to your <a href="/my-qr-codes" target="_blank">My QR Codes</a> page.</li>
-            <li>Find a QR code you want to test.</li>
-            <li>Click the "Edit" button for that QR code.</li>
-            <li>Copy the ID from the URL (e.g., in <code class="code">/create?id=...</code>, the part after <code class="code">id=</code> is the ID).</li>
-            <li>Open <code class="code">public/test-widget.html</code> in your code editor and paste the ID into the <code class="code">data-qr-id</code> attribute of the script tag.</li>
-            <li><strong>Important:</strong> Make sure the QR code exists in your database and has <code class="code">show_button</code> set to <code class="code">true</code>.</li>
-        </ol>
-        <p><strong>Note:</strong> If nothing appears after updating the ID, check the browser console for errors. The most common issue is using an ID that doesn't exist in the database.</p>
+    <div class="container">
+        <h1>QR Widget Test Interface</h1>
+        
+        <!-- Current URL Info -->
+        <div class="card">
+            <h2>Current URL Information</h2>
+            <div>
+                <p><strong>Current URL:</strong> <span id="current-url">Loading...</span></p>
+                <p><strong>Status:</strong> <span id="auth-status">Ready - Testing with current URL</span></p>
+            </div>
+        </div>
+        
+        <!-- Widget Configuration -->
+        <div class="card">
+            <h2>Widget Configuration</h2>
+            <div class="controls">
+                <div class="control-group">
+                    <label for="position">Position:</label>
+                    <select id="position">
+                        <option value="bottom-right">Bottom Right</option>
+                        <option value="bottom-left">Bottom Left</option>
+                        <option value="top-right">Top Right</option>
+                        <option value="top-left">Top Left</option>
+                    </select>
+                </div>
+                <div class="control-group">
+                    <label for="button-shape">Button Shape:</label>
+                    <select id="button-shape">
+                        <option value="rounded">Rounded</option>
+                        <option value="square">Square</option>
+                        <option value="pill">Pill</option>
+                    </select>
+                </div>
+                <div class="control-group">
+                    <label for="display-text">Display Text:</label>
+                    <input type="text" id="display-text" value="View QR Code" placeholder="Button text">
+                </div>
+                <div class="control-group">
+                    <label for="button-icon">Button Icon:</label>
+                    <select id="button-icon">
+                        <option value="qr">QR Code</option>
+                        <option value="link">Link</option>
+                        <option value="share">Share</option>
+                    </select>
+                </div>
+                <div class="control-group">
+                    <label for="show-button">Show Button:</label>
+                    <select id="show-button">
+                        <option value="true">Yes</option>
+                        <option value="false">No</option>
+                    </select>
+                </div>
+                <div class="control-group">
+                    <label>&nbsp;</label>
+                    <button id="update-widget-btn">Update Widget</button>
+                </div>
+            </div>
+            <div id="status-message" class="status-message info">Ready to test widget</div>
+        </div>
+        
+        <!-- Widget Preview -->
+        <div class="card">
+            <h2>Widget Preview</h2>
+            <div id="widget-container">
+                <p>Widget will appear here when loaded</p>
+            </div>
+        </div>
+        
+        <!-- Embed Code -->
+        <div class="card">
+            <h2>Embed Code</h2>
+            <div class="embed-code" id="embed-code">Click "Update Widget" to generate embed code</div>
+            <button onclick="copyEmbedCode()" style="margin-top: 10px;">Copy Embed Code</button>
+        </div>
     </div>
 
-    <!-- The widget script will be embedded here -->
-    <!-- IMPORTANT: Replace YOUR_QR_CODE_ID with a real ID -->
-        <!-- Embed code with a custom position override -->
-        <script src="http://localhost:3000/widget.js"
-        data-qr-id="bd790426-38b5-4b83-b5cc-732ec3cec848"
-        data-position="bottom-right"
-        data-button-shape="rounded"
-        data-display-text="Scan with 📲"
-        data-button-icon="none"
-        defer></script>
+    <script>
+        // Initialize variables
+        let currentQRCodeId = "bd790426-38b5-4b83-b5cc-732ec3cec848";
+        let widgetScript;
+        
+        // Initialize - always use current URL approach
+        function init() {
+            document.getElementById('current-url').textContent = window.location.href;
+            document.getElementById('auth-status').textContent = 'Ready - Testing with current URL';
+            loadCurrentURLWidget();
+        }
+        
+        // Load widget with current URL
+        function loadCurrentURLWidget() {
+            // Remove any existing widget
+            const existingWidget = document.getElementById('qr-widget-container');
+            if (existingWidget) {
+                existingWidget.remove();
+            }
+            
+            // Create widget with current URL - it will auto-append to body
+            const script = document.createElement('script');
+            script.src = '/widget.js';
+            script.setAttribute('data-qr-id', currentQRCodeId);
+            script.setAttribute('data-position', document.getElementById('position').value);
+            script.setAttribute('data-button-shape', document.getElementById('button-shape').value);
+            script.setAttribute('data-display-text', document.getElementById('display-text').value);
+            script.setAttribute('data-button-icon', document.getElementById('button-icon').value);
+            script.setAttribute('data-show-button', document.getElementById('show-button').value);
+            
+            // Remove existing script if any
+            if (widgetScript) {
+                widgetScript.remove();
+            }
+            
+            document.body.appendChild(script);
+            widgetScript = script;
+            
+            updateEmbedCode();
+            document.getElementById('status-message').textContent = 'Widget loaded with current URL - check bottom-right corner of page';
+            document.getElementById('status-message').className = 'status-message success';
+        }
+        
+        // Update embed code
+        function updateEmbedCode() {
+            const config = {
+                position: document.getElementById('position').value,
+                buttonShape: document.getElementById('button-shape').value,
+                displayText: document.getElementById('display-text').value,
+                buttonIcon: document.getElementById('button-icon').value,
+                showButton: document.getElementById('show-button').value
+            };
+            
+            const embedCode = '<scr' + 'ipt src="' + window.location.origin + '/widget.js"\n' +
+                '    data-qr-id="' + currentQRCodeId + '"\n' +
+                '    data-position="' + config.position + '"\n' +
+                '    data-button-shape="' + config.buttonShape + '"\n' +
+                '    data-display-text="' + config.displayText + '"\n' +
+                '    data-button-icon="' + config.buttonIcon + '"\n' +
+                '    data-show-button="' + config.showButton + '">\n' +
+                '</scr' + 'ipt>';
+            
+            document.getElementById('embed-code').textContent = embedCode;
+        }
+        
+        // Copy embed code to clipboard
+        function copyEmbedCode() {
+            const config = {
+                qrId: currentQRCodeId,
+                position: document.getElementById('position').value,
+                buttonShape: document.getElementById('button-shape').value,
+                displayText: document.getElementById('display-text').value,
+                buttonIcon: document.getElementById('button-icon').value,
+                showButton: document.getElementById('show-button').value
+            };
+            
+            const embedCode = '<scr' + 'ipt src="' + window.location.origin + '/widget.js"\n' +
+                '    data-qr-id="' + config.qrId + '"\n' +
+                '    data-position="' + config.position + '"\n' +
+                '    data-button-shape="' + config.buttonShape + '"\n' +
+                '    data-display-text="' + config.displayText + '"\n' +
+                '    data-button-icon="' + config.buttonIcon + '"\n' +
+                '    data-show-button="' + config.showButton + '">\n' +
+                '</scr' + 'ipt>';
+            
+            navigator.clipboard.writeText(embedCode).then(() => {
+                document.getElementById('status-message').textContent = 'Embed code copied to clipboard!';
+                setTimeout(() => {
+                    document.getElementById('status-message').textContent = '';
+                }, 3000);
+            }).catch(err => {
+                console.error('Failed to copy embed code:', err);
+                document.getElementById('status-message').textContent = 'Failed to copy embed code';
+            });
+        }
+        
+        // Initialize the page
+        document.addEventListener('DOMContentLoaded', () => {
+            init();
+            document.getElementById('update-widget-btn').addEventListener('click', loadCurrentURLWidget);
+        });
+    </script>
 </body>
 </html>

@@ -86,7 +86,7 @@ export default function MyQRCodes() {
           id: qrCode.id,
           name: qrCode.name || "Unnamed QR Code",
           type: qrCode.url_type || "Dynamic",
-          url: qrCode.custom_url || "https://example.com",
+          url: qrCode.url_type === 'current' ? '' : qrCode.custom_url || '',
           createdAt: new Date(qrCode.created_at).toLocaleDateString("en-US", {
             year: "numeric",
             month: "long",

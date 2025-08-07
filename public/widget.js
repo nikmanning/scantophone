@@ -24,6 +24,19 @@
     }
 
     const baseUrl = new URL(currentScript.src).origin;
+    // Log deployed version for debugging
+    try {
+      fetch(`${baseUrl}/api/version`)
+        .then(r => r.ok ? r.json() : null)
+        .then(v => {
+          if (v) {
+            console.log('QR Widget: version', { sha: v.shortSha || v.sha, ref: v.ref, env: v.environment, at: v.deployedAt });
+          } else {
+            console.log('QR Widget: version endpoint not available');
+          }
+        })
+        .catch(() => {});
+    } catch (_) {}
     
     // For test mode with current URL, skip API call and use default config
     if (qrCodeId === 'test-current-url' || qrCodeId === 'bd790426-38b5-4b83-b5cc-732ec3cec848') {
